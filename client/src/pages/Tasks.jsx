@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
 import { tasksAPI, usersAPI } from '../services/api';
@@ -42,10 +42,28 @@ export default function Tasks() {
     });
     const [formError, setFormError] = useState('');
     const [formLoading, setFormLoading] = useState(false);
+    const menuRef = useRef(null);
 
     useEffect(() => {
         loadData();
     }, []);
+
+    // Închide meniul când se dă click în afara lui
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                setActionMenuTask(null);
+            }
+        };
+
+        if (actionMenuTask) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [actionMenuTask]);
 
     const loadData = async () => {
         try {
@@ -308,9 +326,12 @@ export default function Tasks() {
                                     </div>
 
 
-                                    <div className="relative">
+                                    <div className="relative" ref={actionMenuTask === task.id ? menuRef : null}>
                                         <button
-                                            onClick={() => setActionMenuTask(actionMenuTask === task.id ? null : task.id)}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActionMenuTask(actionMenuTask === task.id ? null : task.id);
+                                            }}
                                             className="p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-all"
                                         >
                                             <MoreVertical className="w-5 h-5" />
@@ -318,11 +339,14 @@ export default function Tasks() {
 
 
                                         {actionMenuTask === task.id && (
-                                            <div className="absolute right-0 top-full mt-2 w-48 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-10 overflow-hidden">
+                                            <div className="absolute right-0 top-full mt-2 w-48 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden">
 
                                                 {isManager() && task.status === 'OPEN' && (
                                                     <button
-                                                        onClick={() => openAssignModal(task)}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            openAssignModal(task);
+                                                        }}
                                                         className="w-full flex items-center gap-2 px-4 py-3 text-left text-slate-300 hover:bg-slate-700/50 transition-colors"
                                                     >
                                                         <UserPlus className="w-4 h-4" />
@@ -355,7 +379,10 @@ export default function Tasks() {
 
                                                 {isManager() && (
                                                     <button
-                                                        onClick={() => handleDelete(task.id)}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDelete(task.id);
+                                                        }}
                                                         className="w-full flex items-center gap-2 px-4 py-3 text-left text-red-400 hover:bg-slate-700/50 transition-colors"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
@@ -495,14 +522,6 @@ export default function Tasks() {
                         </div>
                     </div>
                 </div>
-            )}
-
-
-            {actionMenuTask && (
-                <div
-                    className="fixed inset-0 z-0"
-                    onClick={() => setActionMenuTask(null)}
-                />
             )}
         </Layout>
     );

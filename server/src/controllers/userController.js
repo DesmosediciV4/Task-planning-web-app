@@ -28,10 +28,18 @@ exports.getAll = async (req, res) => {
 };
 
 // returneaza doar specialistii - folosit la dropdown cand aloci taskuri
+// pentru manager returneaza doar specialistii din echipa lui
 exports.getSpecialists = async (req, res) => {
     try {
+        const where = { role: 'IT_SPECIALIST' };
+        
+        // daca userul e manager, returneaza doar specialistii din echipa lui
+        if (req.user.role === 'IT_MANAGER') {
+            where.managerId = req.user.id;
+        }
+        
         const specialists = await prisma.user.findMany({
-            where: { role: 'IT_SPECIALIST' },
+            where,
             select: { id: true, email: true, name: true }
         });
         res.json(specialists);
